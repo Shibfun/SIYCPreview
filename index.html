@@ -131,6 +131,17 @@
             max-height: 300px; 
             overflow-y: auto; 
         }
+        #tokenURI { 
+            width: 100%; 
+            max-width: 700px; 
+            padding: 8px; 
+            border-radius: 5px; 
+            border: 1px solid #ff8c00; 
+            background: #333; 
+            color: #fff; 
+            font-size: 14px; 
+            margin-top: 10px; 
+        }
         @media (max-width: 768px) {
             h1 { font-size: 32px; }
             .controls { flex-wrap: wrap; gap: 8px; }
@@ -140,7 +151,7 @@
             .cycle-btn, select { font-size: 10px; padding: 3px 6px; }
             .action-btn { padding: 8px 16px; font-size: 14px; }
             .preview-details h2 { font-size: 24px; }
-            #previewInfo { font-size: 12px; }
+            #previewInfo, #tokenURI { font-size: 12px; }
         }
     </style>
 </head>
@@ -373,10 +384,12 @@
         <button id="randomizeBtn" class="action-btn" onclick="randomizeNFT()">Randomize</button>
         <button id="downloadBtn" class="action-btn" onclick="downloadNFT()">Download PNG</button>
         <button id="previewBtn" class="action-btn" onclick="previewTokenURI()">Preview TokenURI</button>
+        <button id="copyBtn" class="action-btn" onclick="copyTokenURI()">Copy TokenURI</button>
     </div>
     <div class="preview-details">
         <h2>TokenURI Preview</h2>
         <div id="previewInfo">Select attributes and click "Preview TokenURI" to see the metadata.</div>
+        <input type="text" id="tokenURI" readonly placeholder="TokenURI will appear here">
     </div>
 
     <script>
@@ -450,7 +463,7 @@
             updateLayerValue(layer);
             checkEarringHatConflict(layer);
             updateNFT();
-            previewTokenURI(); // Auto-update tokenURI preview
+            previewTokenURI();
         }
 
         // Select layer from dropdown
@@ -459,7 +472,7 @@
             updateLayerValue(layer);
             checkEarringHatConflict(layer);
             updateNFT();
-            previewTokenURI(); // Auto-update tokenURI preview
+            previewTokenURI();
         }
 
         // Randomize all layers
@@ -472,7 +485,7 @@
             }
             for (const layer of layerOrder) updateLayerValue(layer);
             updateNFT();
-            previewTokenURI(); // Auto-update tokenURI preview
+            previewTokenURI();
         }
 
         // Download NFT as PNG
@@ -486,20 +499,35 @@
         // Preview tokenURI
         function previewTokenURI() {
             const previewInfo = document.getElementById("previewInfo");
+            const tokenURIInput = document.getElementById("tokenURI");
             try {
                 // Prepare NFT metadata
                 const imageData = canvas.toDataURL("image/png").split(",")[1];
                 const attributes = layerOrder.map(layer => layers[layer][currentIndices[layer]]);
                 const metadata = {
-                    name: `Shiba Inu Yacht Club Preview`,
-                    description: "A preview of a Shiba Inu Yacht Club NFT",
+                    name: "Shiba Inu Yacht Club Preview",
+                    description: "A unique Shiba Inu Yacht Club NFT",
                     image: `data:image/png;base64,${imageData}`,
                     attributes: attributes.map((val, i) => ({ trait_type: layerOrder[i], value: val }))
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
                 previewInfo.textContent = JSON.stringify(metadata, null, 2);
+                tokenURIInput.value = tokenURI;
             } catch (error) {
                 previewInfo.textContent = "Error generating tokenURI: " + error.message;
+                tokenURIInput.value = "";
+            }
+        }
+
+        // Copy tokenURI to clipboard
+        function copyTokenURI() {
+            const tokenURIInput = document.getElementById("tokenURI");
+            tokenURIInput.select();
+            try {
+                document.execCommand("copy");
+                alert("TokenURI copied to clipboard!");
+            } catch (error) {
+                alert("Failed to copy tokenURI: " + error.message);
             }
         }
 
