@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shiba Inu Yacht Club - TokenURI Manager</title>
+    <title>Shiba Inu Yacht Club Preview Tool</title>
+    <link rel="icon" type="image/png" href="https://shibarium.fun/images/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -17,6 +18,14 @@
             min-height: 100vh; 
             color: #fff; 
         }
+        #nftCanvas { 
+            border-radius: 15px; 
+            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.3); 
+            background-color: #fff; 
+            width: 100%; 
+            max-width: 512px; 
+            height: auto; 
+        }
         .header { 
             text-align: center; 
             margin-bottom: 20px; 
@@ -26,14 +35,74 @@
             color: #ff8c00; 
             text-shadow: 0 0 10px rgba(255, 140, 0, 0.5); 
         }
-        .wallet-info { 
-            margin: 10px 0; 
-            font-size: 16px; 
+        .wallet-info {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .controls { 
+            margin: 20px 0; 
+            display: flex; 
+            flex-wrap: nowrap; 
+            gap: 10px; 
+            width: 100%; 
+            max-width: 1200px; 
+            overflow-x: auto; 
+        }
+        .control-group { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-width: 140px; 
+        }
+        label { 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            font-size: 14px; 
+            color: #ff8c00; 
+        }
+        .layer-value { 
+            margin-bottom: 5px; 
+            font-size: 12px; 
+            text-align: center; 
+            color: #fff; 
+            max-width: 100%; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+        .cycle-buttons { 
+            display: flex; 
+            gap: 5px; 
+        }
+        .cycle-btn { 
+            padding: 5px 10px; 
+            font-size: 12px; 
+            background: linear-gradient(45deg, #ff8c00, #e07b00); 
+            color: #1a1a1a; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: transform 0.2s; 
+        }
+        .cycle-btn:hover { 
+            transform: scale(1.05); 
+        }
+        select, input[type="number"] { 
+            margin-top: 5px; 
+            padding: 5px; 
+            font-size: 12px; 
+            width: 100%; 
+            border-radius: 5px; 
+            background: #333; 
+            color: #fff; 
+            border: 1px solid #ff8c00; 
         }
         .action-buttons { 
             display: flex; 
             gap: 15px; 
             margin: 20px 0; 
+            flex-wrap: wrap; 
+            justify-content: center;
         }
         .action-btn { 
             padding: 10px 20px; 
@@ -57,6 +126,52 @@
             opacity: 0.7; 
             pointer-events: none; 
         }
+        .preview-details { 
+            margin-top: 30px; 
+            width: 100%; 
+            max-width: 800px; 
+            text-align: center; 
+        }
+        .preview-details h2 { 
+            font-size: 32px; 
+            color: #ff8c00; 
+        }
+        #previewInfo { 
+            font-size: 14px; 
+            color: #fff; 
+            word-wrap: break-word; 
+            background: #333; 
+            padding: 10px; 
+            border-radius: 5px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        #tokenURI { 
+            width: 100%; 
+            max-width: 700px; 
+            padding: 8px; 
+            border-radius: 5px; 
+            border: 1px solid #ff8c00; 
+            background: #333; 
+            color: #fff; 
+            font-size: 14px; 
+            margin-top: 10px; 
+        }
+        #debugInfo { 
+            font-size: 12px; 
+            color: #ff8c00; 
+            margin-top: 10px; 
+        }
+        .number-input { 
+            margin: 10px 0; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .number-input label { 
+            font-size: 16px; 
+            color: #ff8c00; 
+        }
         .modal { 
             display: none; 
             position: fixed; 
@@ -67,6 +182,7 @@
             background: rgba(0, 0, 0, 0.8); 
             justify-content: center; 
             align-items: center; 
+            z-index: 1000; 
         }
         .modal-content { 
             background: #2d2d2d; 
@@ -90,115 +206,277 @@
             border-radius: 10px; 
             cursor: pointer; 
         }
-        .token-uri-section { 
-            margin-top: 30px; 
-            width: 100%; 
-            max-width: 800px; 
-            text-align: center; 
-        }
-        .token-uri-section h2 { 
-            font-size: 32px; 
-            color: #ff8c00; 
-        }
-        .input-group { 
-            margin: 10px 0; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            gap: 10px; 
-        }
-        .input-group label { 
-            font-size: 16px; 
-            color: #ff8c00; 
-        }
-        .input-group input, .input-group textarea { 
-            width: 100%; 
-            max-width: 600px; 
-            padding: 8px; 
-            border-radius: 5px; 
-            border: 1px solid #ff8c00; 
-            background: #333; 
-            color: #fff; 
-            font-size: 14px; 
-        }
-        .input-group textarea { 
-            height: 100px; 
-            resize: vertical; 
-        }
-        #tokenURIOutput, #attributesOutput { 
-            font-size: 14px; 
-            color: #fff; 
-            background: #333; 
-            padding: 10px; 
-            border-radius: 5px; 
+        .nft-image { 
+            max-width: 100%; 
             max-height: 300px; 
-            overflow-y: auto; 
-            word-wrap: break-word; 
-            width: 100%; 
-            max-width: 600px; 
-            margin-top: 10px; 
-        }
-        .attribute-list { 
-            text-align: left; 
-            font-size: 14px; 
-        }
-        .attribute-item { 
-            margin: 5px 0; 
-        }
-        .metadata-editor { 
-            margin-top: 20px; 
-        }
-        .metadata-editor input, .metadata-editor textarea { 
-            margin-bottom: 10px; 
+            margin: 10px 0; 
+            border-radius: 10px; 
+            border: 2px solid #ff8c00; 
+            display: none; 
         }
         @media (max-width: 768px) {
             h1 { font-size: 32px; }
             .wallet-info { font-size: 14px; }
+            .controls { flex-wrap: wrap; gap: 8px; }
+            .control-group { min-width: 100px; }
+            label { font-size: 12px; }
+            .layer-value { font-size: 10px; }
+            .cycle-btn, select, input[type="number"] { font-size: 10px; padding: 3px 6px; }
             .action-btn { padding: 8px 16px; font-size: 14px; }
+            .preview-details h2 { font-size: 24px; }
             .modal-content { max-width: 90%; padding: 15px; }
-            .token-uri-section h2 { font-size: 24px; }
-            .input-group label { font-size: 14px; }
-            .input-group input, .input-group textarea { font-size: 12px; }
-            #tokenURIOutput, #attributesOutput { font-size: 12px; }
+            #previewInfo, #tokenURI, #debugInfo { font-size: 12px; }
+            .number-input label { font-size: 14px; }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Shiba Inu Yacht Club - TokenURI Manager</h1>
+        <h1>Shiba Inu Yacht Club Preview Tool</h1>
         <div class="wallet-info">
             Wallet: <span id="walletAddress">Not connected</span>
         </div>
         <button id="connectWalletBtn" class="action-btn">Connect Wallet</button>
     </div>
-    <div class="token-uri-section">
-        <h2>Query TokenURI & Attributes</h2>
-        <div class="input-group">
-            <label for="tokenIdInput">NFT Token ID:</label>
-            <input type="number" id="tokenIdInput" min="1" placeholder="Enter Token ID">
-            <button id="queryTokenURIBtn" class="action-btn" onclick="queryTokenURI()">Query TokenURI</button>
-        </div>
-        <div id="tokenURIOutput">TokenURI will appear here after querying.</div>
-        <div id="attributesOutput">Attributes will appear here after querying.</div>
+    <div class="number-input">
+        <label for="nftNumber">NFT Number:</label>
+        <input type="number" id="nftNumber" min="1" value="1" onchange="updateTokenURI()">
+        <button id="queryTokenURIBtn" class="action-btn" onclick="queryTokenURI()">Query TokenURI</button>
     </div>
-    <div class="token-uri-section">
-        <h2>Update TokenURI (Owner Only)</h2>
-        <div class="input-group">
-            <label for="updateTokenIdInput">NFT Token ID:</label>
-            <input type="number" id="updateTokenIdInput" min="1" placeholder="Enter Token ID">
-            <div class="metadata-editor">
-                <label for="metadataName">NFT Name:</label>
-                <input type="text" id="metadataName" placeholder="Enter NFT Name">
-                <label for="metadataDescription">Description:</label>
-                <textarea id="metadataDescription" placeholder="Enter Description"></textarea>
-                <label for="metadataImage">Image URI:</label>
-                <input type="text" id="metadataImage" placeholder="Enter Image URI (e.g., data:image/png;base64,...)">
-                <label>Attributes:</label>
-                <div id="attributesEditor" class="attribute-list"></div>
-                <button class="action-btn" onclick="addAttributeField()">Add Attribute</button>
+    <div class="controls">
+        <div class="control-group">
+            <label>Background</label>
+            <div id="backgroundValue" class="layer-value">Aquamarine</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Background', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Background', 1)">Next</button>
             </div>
-            <button id="updateTokenURIBtn" class="action-btn" onclick="updateTokenURI()" disabled>Update TokenURI</button>
+            <select id="backgroundSelect" onchange="selectLayer('Background')">
+                <option value="0">Aquamarine</option>
+                <option value="1">Army-Green</option>
+                <option value="2">Blue</option>
+                <option value="3">Gray</option>
+                <option value="4">New-Punk-Blue</option>
+                <option value="5">Orange</option>
+                <option value="6">Purple</option>
+                <option value="7">Yellow</option>
+            </select>
         </div>
+        <div class="control-group">
+            <label>Fur</label>
+            <div id="furValue" class="layer-value">Black</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Fur', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Fur', 1)">Next</button>
+            </div>
+            <select id="furSelect" onchange="selectLayer('Fur')">
+                <option value="0">Black</option>
+                <option value="1">Blue</option>
+                <option value="2">Brown</option>
+                <option value="3">Dark-Brown</option>
+                <option value="4">Golden-Brown</option>
+                <option value="5">Gray</option>
+                <option value="6">Orange</option>
+                <option value="7">Pink</option>
+                <option value="8">Red</option>
+                <option value="9">Solid-Gold</option>
+                <option value="10">Tan</option>
+                <option value="11">Zombie</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Clothes</label>
+            <div id="clothesValue" class="layer-value">None</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Clothes', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Clothes', 1)">Next</button>
+            </div>
+            <select id="clothesSelect" onchange="selectLayer('Clothes')">
+                <option value="0">None</option>
+                <option value="1">Admirals-Coat</option>
+                <option value="2">Bandolier</option>
+                <option value="3">Biker-Vest</option>
+                <option value="4">Black-Holes-T</option>
+                <option value="5">Black-Suit</option>
+                <option value="6">Black-T</option>
+                <option value="7">Blue-Dress</option>
+                <option value="8">Bone-Necklace</option>
+                <option value="9">Bone-Tee</option>
+                <option value="10">Caveman-Pelt</option>
+                <option value="11">Cowboy-Shirt</option>
+                <option value="12">Guayabera</option>
+                <option value="13">Hawaiian</option>
+                <option value="14">Hip-Hop</option>
+                <option value="15">Kings-Robe</option>
+                <option value="16">Lab-Coat</option>
+                <option value="17">Leather-Jacket</option>
+                <option value="18">Leather-Punk-Jacket</option>
+                <option value="19">Lumberjack-Shirt</option>
+                <option value="20">Navy-Striped-Tee</option>
+                <option value="21">Pimp-Coat</option>
+                <option value="22">Prison-Jumpsuit</option>
+                <option value="23">Prom-Dress</option>
+                <option value="24">Puffy-Vest</option>
+                <option value="25">Rainbow-Suspenders</option>
+                <option value="26">Sailor-Shirt</option>
+                <option value="27">Service</option>
+                <option value="28">SIYC-T-Red</option>
+                <option value="29">Sleeveless-Logo-T</option>
+                <option value="30">Sleeveless-T</option>
+                <option value="31">Smoking-Jacket</option>
+                <option value="32">Space-Suit</option>
+                <option value="33">Striped-Tee</option>
+                <option value="34">Stunt-Jacket</option>
+                <option value="35">Tanktop</option>
+                <option value="36">Tie-Dye</option>
+                <option value="37">Toga</option>
+                <option value="38">Tuxedo-Tee</option>
+                <option value="39">Tweed-Suit</option>
+                <option value="40">Vietnam-Jacket</option>
+                <option value="41">Wool-Turtleneck</option>
+                <option value="42">Work-Vest</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Eyes</label>
+            <div id="eyesValue" class="layer-value">3D</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Eyes', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Eyes', 1)">Next</button>
+            </div>
+            <select id="eyesSelect" onchange="selectLayer('Eyes')">
+                <option value="0">3D</option>
+                <option value="1">Angry</option>
+                <option value="2">Blindfold</option>
+                <option value="3">Bloodshot</option>
+                <option value="4">Blue-Beams</option>
+                <option value="5">Bored</option>
+                <option value="6">Closed</option>
+                <option value="7">Coins</option>
+                <option value="8">Crazy</option>
+                <option value="9">Cyborg</option>
+                <option value="10">Eyepatch</option>
+                <option value="11">Heart</option>
+                <option value="12">Holographic</option>
+                <option value="13">Hypnotized</option>
+                <option value="14">Laser-Eyes</option>
+                <option value="15">Robot</option>
+                <option value="16">Sad</option>
+                <option value="17">Scumbag</option>
+                <option value="18">Sleepy</option>
+                <option value="19">Sunglasses</option>
+                <option value="20">Wide-Eyed</option>
+                <option value="21">X-Eyes</option>
+                <option value="22">Zombie-Eyes</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Hat</label>
+            <div id="hatValue" class="layer-value">None</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Hat', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Hat', 1)">Next</button>
+            </div>
+            <select id="hatSelect" onchange="selectLayer('Hat')">
+                <option value="0">None</option>
+                <option value="1">Army-Hat</option>
+                <option value="2">Baby's-Bonnet</option>
+                <option value="3">Bandana-Blue</option>
+                <option value="4">Beanie</option>
+                <option value="5">Bowler</option>
+                <option value="6">Bunny-Ears</option>
+                <option value="7">Commie-Hat</option>
+                <option value="8">Cowboy-Hat</option>
+                <option value="9">Faux-Hawk</option>
+                <option value="10">halo-Hair</option>
+                <option value="11">Horns</option>
+                <option value="12">Irish-Boho</option>
+                <option value="13">King's-Crown</option>
+                <option value="14">Laurel-Wreath</option>
+                <option value="15">Party-Hat-1</option>
+                <option value="16">Party-Hat-2</option>
+                <option value="17">Police-Motorcycle-Helmet</option>
+                <option value="18">Prussian-Helmet</option>
+                <option value="19">S&m-Hat</option>
+                <option value="20">Safari</option>
+                <option value="21">Sea-Captain's-Hat</option>
+                <option value="22">Seaman's-Hat</option>
+                <option value="23">Short-Mohawk</option>
+                <option value="24">SIYC-Flipped-Brim</option>
+                <option value="25">SIYC-Hat-Black</option>
+                <option value="26">SIYC-Hat-Red</option>
+                <option value="27">Spinner-Hat</option>
+                <option value="28">Stuntman-Helmet</option>
+                <option value="29">Sushi-Chef-Headband</option>
+                <option value="30">Trippy-Captain's-Hat</option>
+                <option value="31">Vietnam-Era-Helmet</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Mouth</label>
+            <div id="mouthValue" class="layer-value">Bored</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Mouth', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Mouth', 1)">Next</button>
+            </div>
+            <select id="mouthSelect" onchange="selectLayer('Mouth')">
+                <option value="0">Bored</option>
+                <option value="1">Bored-Bubblegum</option>
+                <option value="2">Bored-Cigar</option>
+                <option value="3">Bored-Cigarette</option>
+                <option value="4">Bored-Dagger</option>
+                <option value="5">Bored-Kazoo</option>
+                <option value="6">Bored-Party-Horn</option>
+                <option value="7">Bored-Pipe</option>
+                <option value="8">Bored-Pizza</option>
+                <option value="9">Discomfort</option>
+                <option value="10">Dumbfounded</option>
+                <option value="11">Grin</option>
+                <option value="12">Grin-Diamond-Grill</option>
+                <option value="13">Grin-Gold-Grill</option>
+                <option value="14">Grin-Multicolored</option>
+                <option value="15">Jovial</option>
+                <option value="16">Phoneme-L</option>
+                <option value="17">Phoneme-Oh</option>
+                <option value="18">Phoneme-ooo</option>
+                <option value="19">Phoneme-Vuh</option>
+                <option value="20">Phoneme-Wah</option>
+                <option value="21">Rage</option>
+                <option value="22">Tongue-Out</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Earring</label>
+            <div id="earringValue" class="layer-value">None</div>
+            <div class="cycle-buttons">
+                <button class="cycle-btn" onclick="cycleLayer('Earring', -1)">Prev</button>
+                <button class="cycle-btn" onclick="cycleLayer('Earring', 1)">Next</button>
+            </div>
+            <select id="earringSelect" onchange="selectLayer('Earring')">
+                <option value="0">None</option>
+                <option value="1">Cross</option>
+                <option value="2">Diamond-Stud</option>
+                <option value="3">Gold-Hoop</option>
+                <option value="4">Gold-Stud</option>
+                <option value="5">Silver-Hoop</option>
+                <option value="6">Silver-Stud</option>
+            </select>
+        </div>
+    </div>
+    <canvas id="nftCanvas" width="512" height="512"></canvas>
+    <img id="nftImage" class="nft-image" src="" alt="NFT Image">
+    <div class="action-buttons">
+        <button id="randomizeBtn" class="action-btn" onclick="randomizeNFT()">Randomize</button>
+        <button id="downloadBtn" class="action-btn" onclick="downloadNFT()">Download PNG</button>
+        <button id="previewBtn" class="action-btn" onclick="previewTokenURI()">Preview TokenURI</button>
+        <button id="copyBtn" class="action-btn" onclick="copyTokenURI()">Copy TokenURI</button>
+        <button id="updateTokenURIBtn" class="action-btn" onclick="updateTokenURI()" disabled>Update TokenURI</button>
+    </div>
+    <div class="preview-details">
+        <h2>TokenURI Preview</h2>
+        <div id="previewInfo">Select attributes and click "Preview TokenURI" to see the metadata.</div>
+        <input type="text" id="tokenURI" readonly placeholder="TokenURI will appear here">
+        <div id="debugInfo"></div>
     </div>
     <div id="modal" class="modal">
         <div class="modal-content">
@@ -209,8 +487,33 @@
 
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
     <script>
+        // Layer definitions for NFT customization
+        const layers = {
+            Background: ["Aquamarine", "Army-Green", "Blue", "Gray", "New-Punk-Blue", "Orange", "Purple", "Yellow"],
+            Fur: ["Black", "Blue", "Brown", "Dark-Brown", "Golden-Brown", "Gray", "Orange", "Pink", "Red", "Solid-Gold", "Tan", "Zombie"],
+            Clothes: ["None", "Admirals-Coat", "Bandolier", "Biker-Vest", "Black-Holes-T", "Black-Suit", "Black-T", "Blue-Dress", "Bone-Necklace", "Bone-Tee", "Caveman-Pelt", "Cowboy-Shirt", "Guayabera", "Hawaiian", "Hip-Hop", "Kings-Robe", "Lab-Coat", "Leather-Jacket", "Leather-Punk-Jacket", "Lumberjack-Shirt", "Navy-Striped-Tee", "Pimp-Coat", "Prison-Jumpsuit", "Prom-Dress", "Puffy-Vest", "Rainbow-Suspenders", "Sailor-Shirt", "Service", "SIYC-T-Red", "Sleeveless-Logo-T", "Sleeveless-T", "Smoking-Jacket", "Space-Suit", "Striped-Tee", "Stunt-Jacket", "Tanktop", "Tie-Dye", "Toga", "Tuxedo-Tee", "Tweed-Suit", "Vietnam-Jacket", "Wool-Turtleneck", "Work-Vest"],
+            Eyes: ["3D", "Angry", "Blindfold", "Bloodshot", "Blue-Beams", "Bored", "Closed", "Coins", "Crazy", "Cyborg", "Eyepatch", "Heart", "Holographic", "Hypnotized", "Laser-Eyes", "Robot", "Sad", "Scumbag", "Sleepy", "Sunglasses", "Wide-Eyed", "X-Eyes", "Zombie-Eyes"],
+            Hat: ["None", "Army-Hat", "Baby's-Bonnet", "Bandana-Blue", "Beanie", "Bowler", "Bunny-Ears", "Commie-Hat", "Cowboy-Hat", "Faux-Hawk", "halo-Hair", "Horns", "Irish-Boho", "King's-Crown", "Laurel-Wreath", "Party-Hat-1", "Party-Hat-2", "Police-Motorcycle-Helmet", "Prussian-Helmet", "S&m-Hat", "Safari", "Sea-Captain's-Hat", "Seaman's-Hat", "Short-Mohawk", "SIYC-Flipped-Brim", "SIYC-Hat-Black", "SIYC-Hat-Red", "Spinner-Hat", "Stuntman-Helmet", "Sushi-Chef-Headband", "Trippy-Captain's-Hat", "Vietnam-Era-Helmet"],
+            Mouth: ["Bored", "Bored-Bubblegum", "Bored-Cigar", "Bored-Cigarette", "Bored-Dagger", "Bored-Kazoo", "Bored-Party-Horn", "Bored-Pipe", "Bored-Pizza", "Discomfort", "Dumbfounded", "Grin", "Grin-Diamond-Grill", "Grin-Gold-Grill", "Grin-Multicolored", "Jovial", "Phoneme-L", "Phoneme-Oh", "Phoneme-ooo", "Phoneme-Vuh", "Phoneme-Wah", "Rage", "Tongue-Out"],
+            Earring: ["None", "Cross", "Diamond-Stud", "Gold-Hoop", "Gold-Stud", "Silver-Hoop", "Silver-Stud"]
+        };
+
+        const layerOrder = ["Background", "Fur", "Clothes", "Eyes", "Hat", "Mouth", "Earring"];
+        const currentIndices = {
+            Background: 0,
+            Fur: 0,
+            Clothes: 0,
+            Eyes: 0,
+            Hat: 0,
+            Mouth: 0,
+            Earring: 0
+        };
+
+        const canvas = document.getElementById("nftCanvas");
+        const ctx = canvas.getContext("2d");
+        let lastImageHash = "";
         let web3, accounts, contract;
-        let currentMetadata = null;
+
         const CONTRACT_ADDRESS = "0xB33012feB12D590f4ee9B0D9999e95C30303A209";
         const CONTRACT_ABI = [
             {
@@ -355,7 +658,7 @@
                 showModal('Please connect your wallet first!');
                 return;
             }
-            const tokenId = document.getElementById('tokenIdInput').value;
+            const tokenId = document.getElementById('nftNumber').value;
             if (!tokenId || tokenId < 1) {
                 showModal('Please enter a valid Token ID.');
                 return;
@@ -364,61 +667,37 @@
             queryButton.classList.add('loading');
             try {
                 const tokenURI = await contract.methods.tokenURI(tokenId).call();
-                document.getElementById('tokenURIOutput').innerText = tokenURI;
-                let metadata = { attributes: [] };
+                let metadata = { attributes: [], image: '' };
                 if (tokenURI.startsWith('data:application/json;base64,')) {
                     const base64Data = tokenURI.split(',')[1];
                     metadata = JSON.parse(atob(base64Data));
-                    currentMetadata = metadata;
                 }
-                displayAttributes(metadata.attributes);
-                populateMetadataEditor(metadata);
+                document.getElementById('previewInfo').textContent = JSON.stringify(metadata, null, 2);
+                document.getElementById('tokenURI').value = tokenURI;
+                // Display image
+                const nftImage = document.getElementById('nftImage');
+                nftImage.src = metadata.image || '';
+                nftImage.style.display = metadata.image ? 'block' : 'none';
+                // Update controls based on attributes
+                metadata.attributes.forEach(attr => {
+                    const layer = attr.trait_type;
+                    const value = attr.value;
+                    if (layers[layer]) {
+                        const index = layers[layer].indexOf(value);
+                        if (index !== -1) {
+                            currentIndices[layer] = index;
+                            updateLayerValue(layer);
+                        }
+                    }
+                });
+                await updateNFT();
             } catch (error) {
                 showModal('Failed to query TokenURI: ' + error.message);
-                document.getElementById('tokenURIOutput').innerText = 'Error fetching TokenURI.';
-                document.getElementById('attributesOutput').innerText = 'No attributes available.';
+                document.getElementById('previewInfo').textContent = 'Error fetching TokenURI.';
+                document.getElementById('nftImage').style.display = 'none';
             } finally {
                 queryButton.classList.remove('loading');
             }
-        }
-
-        function displayAttributes(attributes) {
-            const attributesOutput = document.getElementById('attributesOutput');
-            if (!attributes || attributes.length === 0) {
-                attributesOutput.innerText = 'No attributes found.';
-                return;
-            }
-            attributesOutput.innerHTML = '<h3>Attributes:</h3><div class="attribute-list"></div>';
-            const attributeList = attributesOutput.querySelector('.attribute-list');
-            attributes.forEach(attr => {
-                const attrItem = document.createElement('div');
-                attrItem.className = 'attribute-item';
-                attrItem.innerText = `Trait: ${attr.trait_type}, Value: ${attr.value}`;
-                attributeList.appendChild(attrItem);
-            });
-        }
-
-        function populateMetadataEditor(metadata) {
-            document.getElementById('metadataName').value = metadata.name || '';
-            document.getElementById('metadataDescription').value = metadata.description || '';
-            document.getElementById('metadataImage').value = metadata.image || '';
-            const attributesEditor = document.getElementById('attributesEditor');
-            attributesEditor.innerHTML = '';
-            (metadata.attributes || []).forEach((attr, index) => {
-                addAttributeField(attr.trait_type, attr.value);
-            });
-        }
-
-        function addAttributeField(trait_type = '', value = '') {
-            const attributesEditor = document.getElementById('attributesEditor');
-            const attrDiv = document.createElement('div');
-            attrDiv.className = 'attribute-item';
-            attrDiv.innerHTML = `
-                <input type="text" class="trait-type" placeholder="Trait Type (e.g., Background)" value="${trait_type}">
-                <input type="text" class="trait-value" placeholder="Value (e.g., Aquamarine)" value="${value}">
-                <button class="action-btn" onclick="this.parentElement.remove()">Remove</button>
-            `;
-            attributesEditor.appendChild(attrDiv);
         }
 
         async function updateTokenURI() {
@@ -426,33 +705,21 @@
                 showModal('Please connect your wallet first!');
                 return;
             }
-            const tokenId = document.getElementById('updateTokenIdInput').value;
+            const tokenId = document.getElementById('nftNumber').value;
+            const tokenURI = document.getElementById('tokenURI').value;
             if (!tokenId || tokenId < 1) {
                 showModal('Please enter a valid Token ID.');
+                return;
+            }
+            if (!tokenURI) {
+                showModal('Please generate a TokenURI first by clicking "Preview TokenURI".');
                 return;
             }
             const updateButton = document.getElementById('updateTokenURIBtn');
             updateButton.classList.add('loading');
             try {
-                const metadata = {
-                    name: document.getElementById('metadataName').value,
-                    description: document.getElementById('metadataDescription').value,
-                    image: document.getElementById('metadataImage').value,
-                    attributes: []
-                };
-                const attributeItems = document.getElementById('attributesEditor').querySelectorAll('.attribute-item');
-                attributeItems.forEach(item => {
-                    const traitType = item.querySelector('.trait-type').value;
-                    const traitValue = item.querySelector('.trait-value').value;
-                    if (traitType && traitValue) {
-                        metadata.attributes.push({ trait_type: traitType, value: traitValue });
-                    }
-                });
-                const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
                 await contract.methods.updateTokenMetadata(tokenId, tokenURI).send({ from: accounts[0] });
                 showModal('TokenURI updated successfully!');
-                document.getElementById('tokenURIOutput').innerText = tokenURI;
-                displayAttributes(metadata.attributes);
             } catch (error) {
                 showModal('Failed to update TokenURI: ' + error.message);
             } finally {
@@ -460,23 +727,172 @@
             }
         }
 
-        window.onload = () => {
+        // Update layer value in UI
+        function updateLayerValue(layer) {
+            document.getElementById(`${layer.toLowerCase()}Value`).textContent = layers[layer][currentIndices[layer]];
+            document.getElementById(`${layer.toLowerCase()}Select`).value = currentIndices[layer];
+        }
+
+        // Check for earring-hat conflict
+        function checkEarringHatConflict(layer) {
+            if (layer === "Earring" && layers.Earring[currentIndices.Earring] !== "None") {
+                currentIndices.Hat = 0;
+                updateLayerValue("Hat");
+            } else if (layer === "Hat" && layers.Hat[currentIndices.Hat] !== "None") {
+                currentIndices.Earring = 0;
+                updateLayerValue("Earring");
+            }
+        }
+
+        // Simple hash function for image data to detect changes
+        function getImageHash(imageData) {
+            let hash = 0;
+            for (let i = 0; i < imageData.length; i += 100) {
+                hash = ((hash << 5) - hash) + imageData.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return hash.toString();
+        }
+
+        // Draw a single layer on canvas
+        async function drawLayer(layerName, layerValue) {
+            if (layerValue === "None") return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = `images/${layerName}/${layerValue}.png?${Date.now()}`;
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, 512, 512);
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`Failed to load image: images/${layerName}/${layerValue}.png`);
+                    resolve();
+                };
+            });
+        }
+
+        // Update NFT preview on canvas
+        async function updateNFT() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const debugInfo = document.getElementById("debugInfo");
+            debugInfo.textContent = "Drawing canvas...";
+            for (const layer of layerOrder) {
+                await drawLayer(layer, layers[layer][currentIndices[layer]]);
+            }
+            const imageData = canvas.toDataURL("image/png");
+            const currentHash = getImageHash(imageData);
+            if (currentHash !== lastImageHash) {
+                lastImageHash = currentHash;
+                debugInfo.textContent = `Canvas updated at ${new Date().toLocaleTimeString()}`;
+                return imageData;
+            } else {
+                debugInfo.textContent = `Canvas unchanged at ${new Date().toLocaleTimeString()}`;
+                return imageData;
+            }
+        }
+
+        // Cycle through layer options
+        async function cycleLayer(layer, direction) {
+            currentIndices[layer] = (currentIndices[layer] + direction + layers[layer].length) % layers[layer].length;
+            updateLayerValue(layer);
+            checkEarringHatConflict(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+        }
+
+        // Select layer from dropdown
+        async function selectLayer(layer) {
+            currentIndices[layer] = parseInt(document.getElementById(`${layer.toLowerCase()}Select`).value);
+            updateLayerValue(layer);
+            checkEarringHatConflict(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+        }
+
+        // Randomize all layers
+        async function randomizeNFT() {
+            for (const layer of layerOrder) {
+                currentIndices[layer] = Math.floor(Math.random() * layers[layer].length);
+            }
+            if (layers.Earring[currentIndices.Earring] !== "None" && layers.Hat[currentIndices.Hat] !== "None") {
+                Math.random() < 0.5 ? (currentIndices.Hat = 0) : (currentIndices.Earring = 0);
+            }
+            for (const layer of layerOrder) updateLayerValue(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+        }
+
+        // Download NFT as PNG
+        function downloadNFT() {
+            const link = document.createElement("a");
+            link.download = `Shiba-Inu-Yacht-Club-#${document.getElementById("nftNumber").value}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+
+        // Preview tokenURI
+        async function previewTokenURI(imageData = null) {
+            const previewInfo = document.getElementById("previewInfo");
+            const tokenURIInput = document.getElementById("tokenURI");
+            const debugInfo = document.getElementById("debugInfo");
+            try {
+                if (!imageData) {
+                    imageData = canvas.toDataURL("image/png");
+                }
+                const imageBase64 = imageData.split(",")[1];
+                const nftNumber = document.getElementById("nftNumber").value || "1";
+                const attributes = layerOrder.map(layer => layers[layer][currentIndices[layer]]);
+                const metadata = {
+                    name: `Shiba Inu Yacht Club #${nftNumber}`,
+                    description: "A unique Shiba Inu Yacht Club NFT",
+                    image: `data:image/png;base64,${imageBase64}`,
+                    attributes: attributes.map((val, i) => ({ trait_type: layerOrder[i], value: val }))
+                };
+                const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
+                previewInfo.textContent = JSON.stringify(metadata, null, 2);
+                tokenURIInput.value = tokenURI;
+                debugInfo.textContent += ` | TokenURI updated at ${new Date().toLocaleTimeString()}`;
+            } catch (error) {
+                previewInfo.textContent = "Error generating tokenURI: " + error.message;
+                tokenURIInput.value = "";
+                debugInfo.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Update tokenURI when NFT number changes
+        async function updateTokenURI() {
+            const imageData = canvas.toDataURL("image/png");
+            await previewTokenURI(imageData);
+        }
+
+        // Copy tokenURI to clipboard
+        function copyTokenURI() {
+            const tokenURIInput = document.getElementById("tokenURI");
+            tokenURIInput.select();
+            try {
+                document.execCommand("copy");
+                showModal("TokenURI copied to clipboard!");
+            } catch (error) {
+                showModal("Failed to copy tokenURI: " + error.message);
+            }
+        }
+
+        // Initialize page
+        window.onload = async () => {
             if (!window.ethereum) {
                 showModal('No wallet detected. Please install <a href="https://metamask.io" target="_blank">MetaMask</a>.');
             }
+            for (const layer of layerOrder) updateLayerValue(layer);
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
+            document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
+            window.ethereum?.on('chainChanged', () => window.location.reload());
+            window.ethereum?.on('accountsChanged', (newAccounts) => {
+                accounts = newAccounts;
+                updateWalletAddress();
+                checkOwnerStatus();
+            });
         };
-
-        window.ethereum?.on('chainChanged', () => {
-            window.location.reload();
-        });
-
-        window.ethereum?.on('accountsChanged', (newAccounts) => {
-            accounts = newAccounts;
-            updateWalletAddress();
-            checkOwnerStatus();
-        });
-
-        document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
     </script>
 </body>
 </html>
