@@ -142,6 +142,11 @@
             font-size: 14px; 
             margin-top: 10px; 
         }
+        #debugInfo { 
+            font-size: 12px; 
+            color: #ff8c00; 
+            margin-top: 10px; 
+        }
         @media (max-width: 768px) {
             h1 { font-size: 32px; }
             .controls { flex-wrap: wrap; gap: 8px; }
@@ -151,7 +156,7 @@
             .cycle-btn, select { font-size: 10px; padding: 3px 6px; }
             .action-btn { padding: 8px 16px; font-size: 14px; }
             .preview-details h2 { font-size: 24px; }
-            #previewInfo, #tokenURI { font-size: 12px; }
+            #previewInfo, #tokenURI, #debugInfo { font-size: 12px; }
         }
     </style>
 </head>
@@ -390,6 +395,7 @@
         <h2>TokenURI Preview</h2>
         <div id="previewInfo">Select attributes and click "Preview TokenURI" to see the metadata.</div>
         <input type="text" id="tokenURI" readonly placeholder="TokenURI will appear here">
+        <div id="debugInfo"></div>
     </div>
 
     <script>
@@ -417,6 +423,7 @@
 
         const canvas = document.getElementById("nftCanvas");
         const ctx = canvas.getContext("2d");
+        let lastImageHash = ""; // 用于跟踪图片变化
 
         // Update layer value in UI
         function updateLayerValue(layer) {
@@ -435,48 +442,73 @@
             }
         }
 
+        // Simple hash function for image data to detect changes
+        function getImageHash(imageData) {
+            let hash = 0;
+            for (let i = 0; i < imageData.length; i += 100) { // Sample every 100th byte
+                hash = ((hash << 5) - hash) + imageData.charCodeAt(i);
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return hash.toString();
+        }
+
         // Draw a single layer on canvas
         async function drawLayer(layerName, layerValue) {
             if (layerValue === "None") return Promise.resolve();
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const img = new Image();
-                img.src = `images/${layerName}/${layerValue}.png`;
+                img.src = `images/${layerName}/${layerValue}.png?${Date.now()}`; // Prevent caching
                 img.onload = () => {
                     ctx.drawImage(img, 0, 0, 512, 512);
                     resolve();
                 };
-                img.onerror = () => resolve();
+                img.onerror = () => {
+                    console.warn(`Failed to load image: images/${layerName}/${layerValue}.png`);
+                    resolve(); // Continue even if image fails to load
+                };
             });
         }
 
         // Update NFT preview on canvas
         async function updateNFT() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const debugInfo = document.getElementById("debugInfo");
+            debugInfo.textContent = "Drawing canvas...";
             for (const layer of layerOrder) {
                 await drawLayer(layer, layers[layer][currentIndices[layer]]);
+            }
+            const imageData = canvas.toDataURL("image/png");
+            const currentHash = getImageHash(imageData);
+            if (currentHash !== lastImageHash) {
+                lastImageHash = currentHash;
+                debugInfo.textContent = `Canvas updated at ${new Date().toLocaleTimeString()}`;
+                return imageData; // Return image data for tokenURI
+            } else {
+                debugInfo.textContent = `Canvas unchanged at ${new Date().toLocaleTimeString()}`;
+                return imageData;
             }
         }
 
         // Cycle through layer options
-        function cycleLayer(layer, direction) {
+        async function cycleLayer(layer, direction) {
             currentIndices[layer] = (currentIndices[layer] + direction + layers[layer].length) % layers[layer].length;
             updateLayerValue(layer);
             checkEarringHatConflict(layer);
-            updateNFT();
-            previewTokenURI();
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
         }
 
         // Select layer from dropdown
-        function selectLayer(layer) {
+        async function selectLayer(layer) {
             currentIndices[layer] = parseInt(document.getElementById(`${layer.toLowerCase()}Select`).value);
             updateLayerValue(layer);
             checkEarringHatConflict(layer);
-            updateNFT();
-            previewTokenURI();
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
         }
 
         // Randomize all layers
-        function randomizeNFT() {
+        async function randomizeNFT() {
             for (const layer of layerOrder) {
                 currentIndices[layer] = Math.floor(Math.random() * layers[layer].length);
             }
@@ -484,8 +516,8 @@
                 Math.random() < 0.5 ? (currentIndices.Hat = 0) : (currentIndices.Earring = 0);
             }
             for (const layer of layerOrder) updateLayerValue(layer);
-            updateNFT();
-            previewTokenURI();
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
         }
 
         // Download NFT as PNG
@@ -497,25 +529,31 @@
         }
 
         // Preview tokenURI
-        function previewTokenURI() {
+        async function previewTokenURI(imageData = null) {
             const previewInfo = document.getElementById("previewInfo");
             const tokenURIInput = document.getElementById("tokenURI");
+            const debugInfo = document.getElementById("debugInfo");
             try {
-                // Prepare NFT metadata
-                const imageData = canvas.toDataURL("image/png").split(",")[1];
+                // Use provided imageData or get fresh from canvas
+                if (!imageData) {
+                    imageData = canvas.toDataURL("image/png");
+                }
+                const imageBase64 = imageData.split(",")[1];
                 const attributes = layerOrder.map(layer => layers[layer][currentIndices[layer]]);
                 const metadata = {
                     name: "Shiba Inu Yacht Club Preview",
                     description: "A unique Shiba Inu Yacht Club NFT",
-                    image: `data:image/png;base64,${imageData}`,
+                    image: `data:image/png;base64,${imageBase64}`,
                     attributes: attributes.map((val, i) => ({ trait_type: layerOrder[i], value: val }))
                 };
                 const tokenURI = `data:application/json;base64,${btoa(JSON.stringify(metadata))}`;
                 previewInfo.textContent = JSON.stringify(metadata, null, 2);
                 tokenURIInput.value = tokenURI;
+                debugInfo.textContent += ` | TokenURI updated at ${new Date().toLocaleTimeString()}`;
             } catch (error) {
                 previewInfo.textContent = "Error generating tokenURI: " + error.message;
                 tokenURIInput.value = "";
+                debugInfo.textContent = `Error: ${error.message}`;
             }
         }
 
@@ -532,10 +570,10 @@
         }
 
         // Initialize page
-        window.onload = () => {
+        window.onload = async () => {
             for (const layer of layerOrder) updateLayerValue(layer);
-            updateNFT();
-            previewTokenURI();
+            const imageData = await updateNFT();
+            await previewTokenURI(imageData);
         };
     </script>
 </body>
